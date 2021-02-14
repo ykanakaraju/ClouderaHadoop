@@ -1,0 +1,164 @@
+create database xml_demo;
+use xml_demo;
+
+create table if not exists xml_temp(line String);
+
+load data local inpath '/home/cloudera/hive/hive_xml_parsing/emp_xml.xml' into table xml_temp;
+
+
+create table if not exists employee(
+name string,
+designation array<string>,
+company array<string>,
+salary array<string>,
+hike array<string>,
+joining_date array<string>,
+description array<string>)
+row format delimited
+fields terminated by '|';
+
+insert overwrite table employee
+select xpath_string(line,'employee/name'), 
+xpath(line,'employee/designation/text()'),
+xpath(line,'employee/company/text()'),
+xpath(line,'employee/salary/text()'),
+xpath(line,'employee/salary/@hike'),
+xpath(line,'employee/joining_date/text()'),
+xpath(line,'employee/description/text()')
+from xml_temp;
+
+select explode(company) as company from employee;
+
+#select name,company,designation,salary,hike,joining_date,description,salary_l,hike_l from employee
+select name,salary, hike, salary_l,hike_l from employee
+lateral view explode(salary) s as salary_l
+lateral view explode(hike) h as hike_l;
+--Issue:  this will give a cross join, which is not ideal result set
+
+
+creating temporary tables:
+
+create table if not exists emp_temp_company(
+seq_id int,
+name string,
+company string)
+row format delimited
+fields terminated by '|';
+
+create table if not exists emp_temp_designation(
+seq_id int,
+name string,
+designation string)
+row format delimited
+fields terminated by '|';
+
+create table if not exists emp_temp_salary(
+seq_id int,
+name string,
+salary string)
+row format delimited
+fields terminated by '|';
+
+
+create table if not exists emp_temp_hike(
+seq_id int,
+name string,
+hike string)
+row format delimited
+fields terminated by '|';
+
+
+create table if not exists emp_temp_joining_date(
+seq_id int,
+name string,
+joining_date string)
+row format delimited
+fields terminated by '|';
+
+
+create table if not exists emp_temp_description(
+seq_id int,
+name string,
+description string)
+row format delimited
+fields terminated by '|';
+
+
+loading data into temp tables:
+
+insert overwrite table emp_temp_company
+select row_number() over(),name,company_l from employee
+lateral view explode(company) c as company_l;
+
+insert overwrite table emp_temp_designation
+select row_number() over(),name,designation_l from employee
+lateral view explode(designation) c as designation_l;
+
+insert overwrite table emp_temp_joining_date
+select row_number() over(),name,joining_date_l from employee
+lateral view explode(joining_date) c as joining_date_l;
+
+insert overwrite table emp_temp_description
+select row_number() over(),name,description_l from employee
+lateral view explode(description) c as description_l;
+
+insert overwrite table emp_temp_salary
+select row_number() over(),name,salary_l from employee
+lateral view explode(salary) c as salary_l;
+
+insert overwrite table emp_temp_hike
+select row_number() over(),name,hike_l from employee
+lateral view explode(hike) c as hike_l;
+
+
+created tables:
+emp_temp_company
+emp_temp_description
+emp_temp_designation
+emp_temp_hike
+emp_temp_joining_date
+emp_temp_salary
+
+
+create table if not exists emp_breakdown(
+       seqno int,
+       name string,
+       designation string,
+       company string,
+       salary double,
+       hike double,
+       joining_date date,
+       description string)
+       row format delimited
+       fields terminated by '|';
+
+emp_temp_company
+emp_temp_description
+emp_temp_designation
+emp_temp_hike
+emp_temp_joining_date
+emp_temp_salary
+
+
+insert overwrite table emp_breakdown
+select a.seq_id, a.name, b.designation, a.company,
+       cast(c.salary as double),
+       cast(d.hike as double),
+       to_date(e.joining_date),
+       f.description
+from   emp_temp_company a,
+       emp_temp_designation b,
+       emp_temp_salary c,
+       emp_temp_hike d,
+       emp_temp_joining_date e,
+       emp_temp_description f
+where  a.seq_id = b.seq_id
+and    a.name = b.name
+and    a.seq_id = c.seq_id
+and    a.name = c.name
+and    a.seq_id = d.seq_id
+and    a.name = d.name
+and    a.seq_id = e.seq_id
+and    a.name = e.name
+and    a.seq_id = f.seq_id
+and    a.name = f.name;

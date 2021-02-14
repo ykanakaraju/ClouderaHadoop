@@ -1,0 +1,96 @@
+CREATE DATABASE merge_data;
+
+CREATE TABLE merge_data.transactions(
+ ID int,
+ TranValue string,
+ last_update_user string)
+PARTITIONED BY (tran_date string)
+CLUSTERED BY (ID) into 5 buckets 
+STORED AS ORC TBLPROPERTIES ('transactional'='true');
+
+CREATE TABLE merge_data.merge_source(
+ ID int,
+ TranValue string,
+ tran_date string)
+STORED AS ORC;
+
+
+INSERT INTO merge_data.transactions PARTITION (tran_date) VALUES
+(1, 'value_01', 'creation', '20170410'),
+(2, 'value_02', 'creation', '20170410'),
+(3, 'value_03', 'creation', '20170410'),
+(4, 'value_04', 'creation', '20170410'),
+(5, 'value_05', 'creation', '20170413'),
+(6, 'value_06', 'creation', '20170413'),
+(7, 'value_07', 'creation', '20170413'),
+(8, 'value_08', 'creation', '20170413'),
+(9, 'value_09', 'creation', '20170413'),
+(10, 'value_10','creation', '20170413');
+
+INSERT INTO merge_data.merge_source VALUES 
+(1, 'value_01', '20170410'),
+(4, NULL, '20170410'),
+(7, 'value_77777', '20170413'),
+(8, NULL, '20170413'),
+(8, 'value_08', '20170415'),
+(11, 'value_11', '20170415');
+
+
+When we examine the 2 tables, we would expect after the merge, row 1 should be left untouched, row 4 should be deleted (we imply a business rule here: NULL value indicates deletion), row 7 will be update and row 11 will be insertion for new value.
+
+
+MERGE INTO merge_data.transactions AS T 
+USING merge_data.merge_source AS S
+ON T.ID = S.ID and T.tran_date = S.tran_date
+WHEN MATCHED AND (T.TranValue != S.TranValue AND S.TranValue IS NOT NULL) THEN UPDATE SET TranValue = S.TranValue, last_update_user = 'merge_update'
+WHEN MATCHED AND S.TranValue IS NULL THEN DELETE
+WHEN NOT MATCHED THEN INSERT VALUES (S.ID, S.TranValue, 'merge_insert', S.tran_date);
+
+
+SELECT * FROM merge_data.transactions order by ID;
+
+
+merge into customer_partitioned
+ using all_updates on customer_partitioned.id = all_updates.id
+ when matched then update set
+   email=all_updates.email,
+   state=all_updates.state
+ when not matched then insert
+   values(all_updates.id, all_updates.name, all_updates.email,
+   all_updates.state, all_updates.signup);
+
+
+
+
+==============================
+
+
+CREATE TABLE merge_demo1
+(
+ID INT,
+FirstName VARCHAR(100),
+LastName VARCHAR(100)
+);
+
+CREATE TABLE merge_demo2
+(
+ID INT,
+FirstName VARCHAR(100),
+LastName VARCHAR(100)
+);
+
+INSERT INTO merge_demo1 VALUES (1, 'aaaa', 'bbbb');
+INSERT INTO merge_demo1 VALUES (2, 'cccc', 'dddd');
+INSERT INTO merge_demo1 VALUES (3, 'eeee', 'ffff');
+INSERT INTO merge_demo1 VALUES (4, 'gggg', 'hhhh');
+INSERT INTO merge_demo1 VALUES (5, 'iiii', 'jjjj');
+
+
+INSERT INTO merge_demo2 VALUES (2, 'cccc', 'kkkk');
+INSERT INTO merge_demo2 VALUES (3, 'eeee', 'llll');
+
+
+
+
+
+

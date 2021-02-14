@@ -1,0 +1,33 @@
+--------------------------------------------------------------------
+		USER DEFINED FUNCTIONS (UDF)
+--------------------------------------------------------------------
+* User Defined Functions are of three types:
+
+  ** UDF : Operates on Single row and produces a single row.
+  ** UDAF : User Defined Aggregate Function : Openarates on multiple rows and returns a single row
+  ** UDAF : User Defined Table generating Functions. Takes single row and returns a table (multiple rows)
+
+
+* A UDF functions are implemented as java files and packaged as jar file and added to the hive path. and then a temporary function can be registered to make use of that function. 
+
+* UDF extended org.apache.hadoop.hive.ql.exec.UDF  (or UDAF or UDTF as the case may be)
+
+* The java project must include the following external reference libraries:
+
+   ** /usr/lib/hadoop/hadoop-common.jar
+
+   ** /usr/lib/hive/lib/hive-exec-0.10.0.cdh4.7.0.jar
+
+   ** /usr/lib/hive/lib/hive-serde-0.10.0.cdh4.7.0.jar
+
+
+Registering JAR File:
+
+  hive>  ADD JAR /home/cloudera/hive/udf-example.jar   (no quotes)
+
+
+Create a User Define Function:
+
+  hive> CREATE TEMPORARY FUNCTION strip AS 'com.sample.Strip'	
+
+===========================

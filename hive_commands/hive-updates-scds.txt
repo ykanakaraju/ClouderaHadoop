@@ -1,0 +1,62 @@
+https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DML#LanguageManualDML-Merge
+
+=======================
+
+MERGE INTO <target table> AS T USING <source expression/table> AS S
+ON <boolean expression1>
+WHEN MATCHED [AND <boolean expression2>] THEN UPDATE SET <set clause list>
+WHEN MATCHED [AND <boolean expression3>] THEN DELETE
+WHEN NOT MATCHED [AND <boolean expression4>] THEN INSERT VALUES<value list>
+
+========================
+
+Synopsis:
+
+   => Merge allows actions to be performed on a target table based 
+      on the results of a join with a source table.
+
+   => In Hive 2.2, upon successful completion of this operation the 
+      changes will be auto-committed.
+
+Notes
+1, 2, or 3 WHEN clauses may be present; at most 1 of each type:  UPDATE/DELETE/INSERT.
+WHEN NOT MATCHED must be the last WHEN clause.
+If both UPDATE and DELETE clauses are present, the first one in the statement must include [AND <boolean expression>].
+Vectorization will be turned off for merge operations.  This is automatic and requires no action on the part of the user.  Non-delete operations are not affected.  Tables with deleted data can still be queried using vectorization.
+
+===========
+
+Get Ready to Keep Data Fresh:
+
+   With HDP 2.6 there are two things you need to do to allow your tables to be updated.
+
+   First: you need to configure you system to allow Hive transactions.
+
+   Second: Your table must be a transactional table. 
+           That means the table must be clustered, stored as ORCFile data and have a table property that says transactional = true.
+
+
+=====================
+
+
+create table customer_partitioned
+(id int, name string, email string, state string)
+ partitioned by (signup date)
+ clustered by (id) into 2 buckets stored as orc
+ tblproperties("transactional"="true");
+
+
+
+
+merge into customer_partitioned
+ using all_updates on customer_partitioned.id = all_updates.id
+ when matched then update set
+   email=all_updates.email,
+   state=all_updates.state
+ when not matched then insert
+   values(all_updates.id, all_updates.name, all_updates.email,
+   all_updates.state, all_updates.signup);
+
+
+
+

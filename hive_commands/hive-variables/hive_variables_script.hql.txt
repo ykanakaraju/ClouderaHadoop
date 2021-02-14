@@ -1,0 +1,18 @@
+CREATE DATABASE hive_variables_db;
+
+USE hive_variables_db;
+
+CREATE TABLE tab_dates(dt DATE, ts TIMESTAMP, dtstr STRING);
+
+INSERT INTO tab_dates (dt, ts, dtstr) VALUES 
+('2020-01-02', '2020-01-02 23:43:55.605', '20200102')
+,('2020-01-03', '2020-01-03 23:43:55.605', '20200103')
+,('2020-01-04', '2020-01-04 23:43:55.605', '20200104')
+,('2020-01-05', '2020-01-05 23:43:55.605', '20200105')
+,('2020-01-06', '2020-01-06 23:43:55.605', '20200106')
+,('2020-01-07', '2020-01-07 23:43:55.605', '20200107');
+
+
+SELECT * FROM tab_dates WHERE dt > '${hiveconf:DATE}';
+
+DROP DATABASE hive_variables_db CASCADE;

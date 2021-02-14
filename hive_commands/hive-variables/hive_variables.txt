@@ -1,0 +1,31 @@
+-- There are three namespaces for variables:
+-- hiveconf, system, and env. 
+
+--Use hiveconf for variable subsititution
+set DATE=2020-01-02;
+set DATE;
+select * from tab_dates where dt >= '${hiveconf:DATE}';
+
+-- run this is command prompt
+hive -hiveconf DATE=2020-01-03 -f '/home/cloudera/hive/hive_variables/hive_variables_script.hql'
+
+--Use env and system variables
+
+set hivevar:HDATE=2020-01-02;
+set HDATE;
+select * from tab_dates where dt >= '${HDATE}';
+
+-- nested variables
+set a=1;
+set b=a;
+set c=${hiveconf:${hiveconf:b}};
+set c;
+
+
+-- adding/deleting files to path
+set jar=hive_custom_input_format.jar;
+ 
+add file ${hiveconf:jar};
+list file;
+delete file ${hiveconf:jar};
+list file;
